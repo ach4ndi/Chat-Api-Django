@@ -2,9 +2,10 @@ from rest_framework import viewsets, permissions, generics
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from main.serializers.user import UserSerializer
-from main.serializers.room import RoomUserListSerializer
+from main.serializers.room import RoomUserListSerializer, RoomSerializer
 from main.models.room import Room
 from main.models.room_user import RoomUser
+from main.models.message import Message
 from django.db.models import Count
 
 class RoomUserView(generics.ListAPIView):
@@ -44,21 +45,36 @@ class RoomCreateView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, ]
     
     def post(self, request, *args, **kwargs):
-        user =  self.request.user
-        user_target = User.Objects.get(id=request.data['target_id'])
-        message = request.data['message']
-        user_ids = [user.id,user_target.id]
+        user_main =  self.request.user
+        user_target = User.objects.get(id=request.data['target_id'])
+        user_ids = [user_main.id,user_target.id]
         
-        room_find = RoomUser.object.filter(id__in=user_ids).annotate(total=Count('room')).order_by('total').all()
-        
+        room_find = RoomUser.objects.filter(id__in=user_ids).annotate(total=Count('room')).order_by('total').values('room').distinct().all()
+        print(room_find)
         if len(room_find) > 0:
-            return {
-                'Error' : 'Room is already created'
-            }
+            room_field = []
+            
+            for data in room_find:
+                room_field.append(data['room'])
+            
+            room_query_field = Room.objects.filter(id__in=room_field)
+            
+            return Response({
+                'create_new': False,
+                'room': RoomSerializer(room_query_field, many=True).data
+            })
         
-        new_room = Room.objects.create(creator=user,label=user.username + ' with ' + user_target.username, mode=1)
+        new_room = Room(creator=user_main,label=user_main.username + ' with ' + user_target.username, mode=1)
+        new_room.save()
         
         for user_id in user_ids:
-            RoomUser.objects.create(room=new_room,attendant__id=user_id)
+            ruser = RoomUser(room=new_room,attendant=User.objects.get(id=user_id))
+            ruser.save()
         
+        return Response({
+                'create_new': True,
+                'room': RoomSerializer(new_room, many=True).data
+            })
         
+        #msg = Message(room=new_room,message=message,user=user)
+        #msg.save()

@@ -6,7 +6,7 @@ from main.models.room_user import RoomUser
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ('id', 'label', 'model')
+        fields = ('id', 'label', 'mode')
 
 class RoomUserSerializer(serializers.ModelSerializer):
     attendant = UserSerializer(many=False)
