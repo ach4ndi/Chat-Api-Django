@@ -15,3 +15,10 @@ class RoomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomUser
         fields = ('id', 'room', 'attendant', 'unread_count')
+        
+
+class RoomUserListSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    creator = UserSerializer(many=False)
+    label = serializers.CharField(max_length=500)
+    unread_count = serializers.IntegerField()
