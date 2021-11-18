@@ -8,20 +8,19 @@ from main.models.room_user import RoomUser
 from main.models.message import Message
 from django.db.models import Count
 
-class RoomUserView(generics.ListAPIView):
+class RoomUserView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, ]
-    serializer_class = RoomUserListSerializer
 
-    def get_queryset(self):
+    def get(self, request):
         user =  self.request.user
         room_list = RoomUser.objects.filter(attendant=user).values_list('room__id').distinct()
 
         output = []
         
         for data in room_list:
-            room_data = Room.objects.get(id=data)
+            room_data = Room.objects.get(id=data[0])
             room_label = user.username + ' with '
-            room_user_in = RoomUser.objects.filter(id=data)
+            room_user_in = RoomUser.objects.filter(id=data[0])
             room_user_count = 0
             
             for user_room in room_user_in:
@@ -32,14 +31,17 @@ class RoomUserView(generics.ListAPIView):
         
             insert_data = {
                 'id' : room_data.id,
-                'creator' : UserSerializer(room_data.creator),
+                'creator' : UserSerializer(room_data.creator).data,
                 'label' : room_label + f' {room_user_count}',
                 'unread_count' : room_user_count
             }
             
             output.append(insert_data)
         
-        return output
+        return Response({
+            'status': 200,
+            'result': output
+            })
 
 class RoomCreateView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, ]
@@ -50,7 +52,7 @@ class RoomCreateView(generics.GenericAPIView):
         user_ids = [user_main.id,user_target.id]
         
         room_find = RoomUser.objects.filter(id__in=user_ids).annotate(total=Count('room')).order_by('total').values('room').distinct().all()
-        print(room_find)
+
         if len(room_find) > 0:
             room_field = []
             
@@ -60,6 +62,7 @@ class RoomCreateView(generics.GenericAPIView):
             room_query_field = Room.objects.filter(id__in=room_field)
             
             return Response({
+                'status': 200,
                 'create_new': False,
                 'room': RoomSerializer(room_query_field, many=True).data
             })
@@ -72,9 +75,10 @@ class RoomCreateView(generics.GenericAPIView):
             ruser.save()
         
         return Response({
-                'create_new': True,
-                'room': RoomSerializer(new_room, many=True).data
-            })
+            'status': 200,
+            'create_new': True,
+            'room': RoomSerializer(new_room, many=True).data
+        })
         
         #msg = Message(room=new_room,message=message,user=user)
         #msg.save()

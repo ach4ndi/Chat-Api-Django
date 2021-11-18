@@ -5,6 +5,7 @@ from main.serializers.user import UserSerializer, UserRegisterSerializer, UserLo
 from django.contrib.auth.models import User
 
 class UserCreationView(generics.GenericAPIView):
+    permission_classes = ()
     serializer_class = UserRegisterSerializer
 
     def post(self, request, *args, **kwargs):
@@ -13,6 +14,7 @@ class UserCreationView(generics.GenericAPIView):
         user = serializer.save()
         
         return Response({
+            'status': 200,
             "user": UserSerializer(user, context=self.get_serializer_context()).data,
             "token": AuthToken.objects.create(user)[1]
         })
@@ -24,11 +26,13 @@ class UserLoginView(generics.GenericAPIView):
         user = User.objects.get(username=request.data['username'])
         if user.check_password(request.data['password']):
             return Response({
+                'status': 200,
                 "user": UserSerializer(user, context=self.get_serializer_context()).data,
                 "token": AuthToken.objects.create(user)[1]
             })
         else:
             return Response({
+                'status': 400,
                 "error": "Login Invalid"
             })
         

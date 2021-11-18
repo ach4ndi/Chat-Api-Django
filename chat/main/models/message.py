@@ -12,10 +12,10 @@ class Message(models.Model):
     update_at = models.DateTimeField(blank=True, null=True)
     
     def __unicode__(self):
-        return 'Room {} - [{}] {}'.format(self.room.id, self.id, self.attendant.username)
+        return 'Room {} - [{}] {}'.format(self.room.id, self.id, self.user.username)
 
     def __str__(self):
-        return 'Room {} - [{}] {}'.format(self.room.id, self.id, self.attendant.username)
+        return 'Room {} - [{}] {}'.format(self.room.id, self.id, self.user.username)
     
     def save(self, *args, **kwargs):
         self.created_at = datetime.now()
