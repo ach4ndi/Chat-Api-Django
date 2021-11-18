@@ -79,6 +79,3 @@ class RoomCreateView(generics.GenericAPIView):
             'create_new': True,
             'room': RoomSerializer(new_room, many=True).data
         })
-        
-        #msg = Message(room=new_room,message=message,user=user)
-        #msg.save()

@@ -9,9 +9,10 @@ from main.models.room_user import RoomUser
 from main.models.message import Message
 from django.db.models import Count
 
-
 class MessageSendView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, ]
+    
+    # User send message to other user when the user is listed on room user list
     
     def post(self, request, *args, **kwargs):
         user_main =  self.request.user
@@ -42,3 +43,33 @@ class MessageSendView(generics.GenericAPIView):
                 'result': MessageSerializer(msg).data
             })
 
+class MessageRoomListView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated, ]
+    
+    # When user list message from on their room, their unread count will reset 0
+    
+    def get(self, request):
+        user =  self.request.user
+        room_id_ip = request.data['room_id']
+        
+        room_find = RoomUser.objects.filter(room__id=room_id_ip,attendant=user).annotate(total=Count('room')).order_by('total').all()
+        
+        if len(room_find) == 0:
+            return Response({
+                'status': 400,
+                'result': []
+            })
+        
+        message_list = Message.objects.filter(room__id=room_id_ip).all()
+        
+        roomuser_count = RoomUser.objects.get(room__id=room_id_ip,attendant=user)
+        roomuser_count.unread_count = 0
+        roomuser_count.save()
+        
+        return Response({
+                'status': 200,
+                'result': {
+                    'room_id': room_id_ip,
+                    'messages': MessageSerializer(message_list, many=True).data
+                }
+            })
